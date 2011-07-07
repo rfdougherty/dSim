@@ -1,0 +1,75 @@
+app: {
+
+useGpu = true;
+stepsPerUpdate = 40;  // Number of timesteps per display update
+
+};
+
+sim: {
+
+numParticles = 100000;
+fieldStrength = 1.5; // Tesla 
+gyromagneticRatio = 42576.0; // KHz/T, which is equivalent to (cycles/millisecond)/T
+// The timestep must e small enough so that typical displacements don't
+// jump over tissue features. Mean displacement is sqrt(6*adc*timestep)
+timestep = 0.005;    // msec
+adc = 2.0;           // micrometers^2/msec
+intraAdcScale = 1.0;
+spaceScale = 100.0;  // The native space is -1 to 1 um. Scale it up with this parameter.
+
+permeability = -6.0; // transmission probability = 10^permeability
+
+gradsFile = "sim_bval_x.grads";
+
+};
+
+fibers: {
+
+fibersFile =  "sim.fibers";
+
+// in micrometers
+radiusMean = 0.5;
+radiusStdev = 0.1;
+spacingMean = 0.1;
+spacingStdev = 0.02;
+// Myelin sheath thickness is linearly proportional to axon diameter.
+// Inner-to-outer diameter ratio for myelinated axons is 0.8. Thus,
+// the inner radius is 80% the size of the outer radius.
+// See Wang et. al., 2008, J. Neurosci., 28(15):4047– 4056.
+myelinRadiusFraction = 0.8;
+
+};
+
+## eof
+
+# 200,000 particles:
+mrSig=[ 1 0.98786247 0.97667563 0.96545029 0.95568347 0.94511902 0.93705904 0.92842489 0.9196223 0.91201317 0.90355098 0.89933109 0.89156204 0.88462812 0.8793869 0.87397277 ]
+Total kernel time was 634.53 sec for 225040 timesteps (354.6581 steps/sec)
+
+
+# 100,000 particles:
+mrSig=[ 1 0.98779082 0.97650164 0.96521956 0.95493305 0.94489324 0.93556726 0.92879987 0.92082947 0.9129464 0.90365016 0.8956064 0.88996303 0.88643479 0.87982738 0.87357044 ]
+Total kernel time was 320.74 sec for 225040 timesteps (701.6263 steps/sec)
+
+# 50,000 particles:
+mrSig=[ 1 0.98782647 0.97653252 0.96528184 0.95580965 0.94525677 0.93500924 0.92719442 0.91949564 0.90892851 0.90446413 0.89574099 0.88741356 0.8826924 0.87760794 0.87407231 ]
+Total kernel time was 166.13 sec for 225040 timesteps (1354.5723 steps/sec)
+
+# 25,000 particles:
+mrSig=[ 1 0.9882859 0.97681355 0.96681255 0.95559311 0.94324255 0.9374063 0.9235757 0.9194327 0.91223288 0.90487903 0.89779186 0.89150268 0.88304782 0.87996322 0.87818789 ]
+Total kernel time was 88.72 sec for 225040 timesteps (2536.4390 steps/sec)
+
+# 12,500 particles:
+mrSig=[ 1 0.98785871 0.97607684 0.96342325 0.95735937 0.9480136 0.93162698 0.93418598 0.92115825 0.91093457 0.90604043 0.89521039 0.89442515 0.88257003 0.87250918 0.87766957 ]
+Total kernel time was 49.35 sec for 225040 timesteps (4560.1567 steps/sec)
+
+# 6,250 particles:
+mrSig=[ 1 0.98750049 0.97746235 0.96571457 0.95783764 0.94413435 0.93746483 0.93072546 0.9168787 0.91882288 0.90331626 0.89554608 0.89042115 0.87986833 0.88178617 0.87798488 ]
+Total kernel time was 26.18 sec for 225040 timesteps (8596.3740 steps/sec)
+
+# 3,125 particles
+mrSig=[ 1 0.98719168 0.97596222 0.96788687 0.95892346 0.94434649 0.93400663 0.92876267 0.91944498 0.91395891 0.89311594 0.90097678 0.9022485 0.88079989 0.88273835 0.86179507 ]
+Total kernel time was 14.32 sec for 225040 timesteps (15717.4951 steps/sec)
+
+
+

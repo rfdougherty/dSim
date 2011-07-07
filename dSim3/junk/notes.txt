@@ -1,0 +1,1 @@
+- Add setArray in resetSpins

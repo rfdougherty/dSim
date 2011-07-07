@@ -1,0 +1,51 @@
+
+###############################################################
+#
+# Build script for project
+#
+###############################################################
+
+# Source files
+#EXECUTABLE	:= diffusion
+
+
+# Basic directory setup for SDK
+# (override directories only if they are not already defined)
+#SRCDIR		?= src
+#BINDIR		?= bin
+#ROOTOBJDIR	?= obj
+
+# Compiler-specific flags
+NVCCFLAGS :=
+CXXFLAGS  :=
+
+ifeq ($(emu), 1)
+	NVCCFLAGS   += -deviceemu
+	CXXFLAGS		+= -D__DEVICE_EMULATION__
+endif
+
+
+all: diffusion
+
+diffusion: diffusion.o spinSystem.o renderSpins.o shaders.o spinSystem.cu_o
+	g++ -fPIC -o diffusion diffusion.o spinSystem.o renderSpins.o shaders.o spinSystem.cu_o -L/usr/local/cuda/lib64 -L/usr/local/cuda/sdk/C/lib -L/usr/local/cuda/sdk/C/common/lib -lconfig++ -lcutil -lglut -lcudart -lGL -lGLU -lGLEW -lparamgl
+
+diffusion.o: diffusion.cpp
+	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -I/usr/include/jama/ -I/usr/include/tnt/ -DUNIX -g -c diffusion.cpp
+
+spinSystem.o: spinSystem.cpp
+	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -c spinSystem.cpp
+
+renderSpins.o: renderSpins.cpp
+	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -c renderSpins.cpp
+
+shaders.o: shaders.cpp
+	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -c shaders.cpp
+
+spinSystem.cu_o: spinSystem.cu
+	nvcc -o spinSystem.cu_o -c spinSystem.cu --compiler-options -fno-strict-aliasing -arch=sm_11 $(NVCCFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g
+
+clean:
+	rm -rf *o diffusion
+
+

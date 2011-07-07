@@ -1,0 +1,41 @@
+Index: dSim3/Makefile
+===================================================================
+--- dSim3/Makefile	(revision 203)
++++ dSim3/Makefile	(working copy)
+@@ -72,19 +72,19 @@
+ all: $(TARGET)
+ 
+ $(TARGET): $(OBJDIR)/diffusion.o $(OBJDIR)/spinSystem.o $(OBJDIR)/renderSpins.o $(OBJDIR)/shaders.o $(OBJDIR)/spinSystem.cu_o
+-	g++ -fPIC -o bin/release/diffusion $(OBJDIR)/diffusion.o $(OBJDIR)/spinSystem.o $(OBJDIR)/renderSpins.o $(OBJDIR)/shaders.o $(OBJDIR)/spinSystem.cu_o -L/usr/local/cuda/lib64 -L/usr/local/cuda/sdk/C/lib -L/usr/local/cuda/sdk/C/common/lib -lconfig++ -lcutil -lglut -lcudart -lGL -lGLU -lGLEW -lparamgl
++	g++ -fPIC -fopenmp -o bin/release/diffusion $(OBJDIR)/diffusion.o $(OBJDIR)/spinSystem.o $(OBJDIR)/renderSpins.o $(OBJDIR)/shaders.o $(OBJDIR)/spinSystem.cu_o -L/usr/local/cuda/lib64 -L/usr/local/cuda/sdk/C/lib -L/usr/local/cuda/sdk/C/common/lib -lconfig++ -lcutil -lglut -lcudart -lGL -lGLU -lGLEW -lparamgl
+ 
+ $(OBJDIR)/diffusion.o: $(SRCDIR)/diffusion.cpp
+-	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -I./jama/ -I./tnt/ -DUNIX -g -o $(OBJDIR)/diffusion.o -c $(SRCDIR)/diffusion.cpp
++	g++ -fno-strict-aliasing -fopenmp $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -I./jama/ -I./tnt/ -DUNIX -g -o $(OBJDIR)/diffusion.o -c $(SRCDIR)/diffusion.cpp
+ 
+ $(OBJDIR)/spinSystem.o: $(SRCDIR)/spinSystem.cpp
+-	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/spinSystem.o -c $(SRCDIR)/spinSystem.cpp
++	g++ -fno-strict-aliasing -fopenmp $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/spinSystem.o -c $(SRCDIR)/spinSystem.cpp
+ 
+ $(OBJDIR)/renderSpins.o: $(SRCDIR)/renderSpins.cpp
+-	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/renderSpins.o -c $(SRCDIR)/renderSpins.cpp
++	g++ -fno-strict-aliasing -fopenmp $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/renderSpins.o -c $(SRCDIR)/renderSpins.cpp
+ 
+ $(OBJDIR)/shaders.o: $(SRCDIR)/shaders.cpp
+-	g++ -fno-strict-aliasing $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/shaders.o -c $(SRCDIR)/shaders.cpp
++	g++ -fno-strict-aliasing -fopenmp $(CXXFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g -o $(OBJDIR)/shaders.o -c $(SRCDIR)/shaders.cpp
+ 
+ $(OBJDIR)/spinSystem.cu_o: $(SRCDIR)/spinSystem.cu
+ 	nvcc -o $(OBJDIR)/spinSystem.cu_o -c $(SRCDIR)/spinSystem.cu --ptxas-options="-v" --compiler-options -fno-strict-aliasing -arch=sm_11 $(NVCCFLAGS) -I. -I/usr/local/cuda/include -I/usr/local/cuda/sdk/C/common/inc -DUNIX -g
+Index: dSim3/src/spinKernelCpu.cpp
+===================================================================
+--- dSim3/src/spinKernelCpu.cpp	(revision 203)
++++ dSim3/src/spinKernelCpu.cpp	(working copy)
+@@ -7,6 +7,7 @@
+ 
+ 	//printf("
+ 	
++#pragma omp parallel for
+ 	for (uint i=0; i<m_numSpins; i++){
+ 		cpuIntegrate(i, magneticGradient, phaseConstant, deltaTime);
+ 	}	
