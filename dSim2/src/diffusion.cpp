@@ -1,15 +1,8 @@
-/*_______________________________________________________________________________
- * MR Diffusion Simulation (dSim)
- *_______________________________________________________________________________
- *
- * Copyright 2008 Bob Dougherty (bobd@stanford.edu)
- *
- * Portions of this code are based on the NVidia 'Spins' demo 
- * distributed with the CUDA SDK and are thus copyright 1993-2007 
- * NVIDIA Corporation. Details are provided in the individual source 
- * files (e.g., renderSpins.cpp).
- */
+// Example code from http://wiki.wxwidgets.org/WxGLCanvas
+//
+// To compile: g++ main.cpp -o test `wx-config --libs --cxxflags --gl-libs`
 
+// Start includes from dSim
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
@@ -30,8 +23,26 @@
 #include "spinSystem.h"
 #include "renderSpins.h"
 #include "paramgl.h"
+// End includes from dSim
+
+#include "wx/wx.h"
+#include "wx/sizer.h"
+#include "wx/glcanvas.h"
+#include "diffusion.h"
+ 
+// include OpenGL
+#ifdef __WXMAC__
+#include "OpenGL/glu.h"
+#include "OpenGL/gl.h"
+#else
+#include <GL/glu.h>
+#include <GL/gl.h>
+#endif
+
+#include <libconfig.h++>
 
 
+// Start typedef from dSim
 // We'll create a very simple linked list of gradient parameter sets.
 typedef struct _gradStruct
 {
@@ -44,44 +55,131 @@ typedef struct _gradStruct
   struct _gradStruct *next;
 }gradStruct;
 gradStruct *gGrads = NULL;
+// End typedef from dSim
 
-typedef struct _gtkInputStruct {
+class SettingsFrame: public wxFrame
+{
+public:
 
-	GtkWidget *inputWindow;
-	GtkWidget *inputSpinNumberField;
-	GtkWidget *inputFieldStrengthField;
-	GtkWidget *inputTimestepField;
-	GtkWidget *inputOutsideAdcField;
-	GtkWidget *inputOutsideT2Field;
-	GtkWidget *inputMyelinAdcField;
-	GtkWidget *inputMyelinT2Field;
-	GtkWidget *inputInsideAdcField;
-	GtkWidget *inputInsideT2Field;
-	GtkWidget *inputPermeabilityField;
-	GtkWidget *inputStepsPerUpdateField;
-	GtkWidget *inputUseGpuRadioButton;
-	GtkWidget *inputRenderOutputCheckButton;
-	GtkWidget *inputUseRTreeRadioButton;
-	GtkWidget *inputSimpleCollisionsRadioButton;
-	GtkWidget *inputGradientFileChooser;
-	GtkWidget *inputFiberFileChooser;
+    SettingsFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
 
-	uint *pNumSpins;
-	float *pTimestep;
-	float *pExtraAdc;
-	float *pExtraT2;
-	float *pMyelinAdc;
-	float *pMyelinT2;
-	float *pIntraAdc;
-	float *pIntraT2;
-	float *pPermeability;
-	int *pStepsPerUpdate;
-	bool *pUseGpu;
-	bool *pUseDisplay;
+    wxButton *okButton;
+    wxButton *cancelButton;
+    wxStaticText *spinNumberText;
+    wxTextCtrl *spinNumberEntry;
+    wxStaticText *timeStepText;
+    wxTextCtrl *timeStepEntry;
+    wxStaticText *ADCText;
+    wxStaticText *T2Text;
+    wxStaticText *betweenFibersText;
+    wxTextCtrl *betweenFibersADCEntry;
+    wxTextCtrl *betweenFibersT2Entry;
+    wxStaticText *inMyelinText;
+    wxTextCtrl *inMyelinADCEntry;
+    wxTextCtrl *inMyelinT2Entry;
+    wxStaticText *insideFibersText;
+    wxTextCtrl *insideFibersADCEntry;
+    wxTextCtrl *insideFibersT2Entry;
+    wxStaticText *permeabilityText;
+    wxTextCtrl *permeabilityEntry;
 
-	const char **sGradientFileName;
-	const char **sFiberFileName;
-} gtkInputStruct;
+    void OnExit(wxCommandEvent& event);
+
+    DECLARE_EVENT_TABLE() 
+};
+
+class MyFrame: public wxFrame
+{
+public:
+
+    MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
+
+    SettingsFrame *basicSettingsFrame;
+
+    void OnQuit(wxCommandEvent& event);
+    void OnAbout(wxCommandEvent& event);
+    void OnRun(wxCommandEvent& event);
+    void OnBasicSettings(wxCommandEvent& event);
+    void OnAdvancedSettings(wxCommandEvent& event);
+    void OnLoadSettings(wxCommandEvent& event);
+    void OnLoadFibers(wxCommandEvent& event);
+    void OnLoadGrads(wxCommandEvent& event);
+
+    DECLARE_EVENT_TABLE()
+};
+
+
+class AdvancedSettingsFrame: public wxFrame
+{
+public:
+
+    AdvancedSettingsFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
+
+    wxButton *okButton;
+    wxButton *cancelButton;
+    wxStaticText *stepsPerUpdateText;
+    wxTextCtrl *stepsPerUpdateEntry;
+
+    wxCheckBox *renderSpinsCheckbox;
+    wxRadioButton *useGpuRadioButton;
+    wxRadioButton *useCpuRadioButton;
+    wxRadioButton *useRTreeRadioButton;
+    wxRadioButton *useGridRadioButton;
+    wxRadioButton *simpleCollisionsRadioButton;
+    wxRadioButton *advancedCollisionsRadioButton;
+
+    void OnExit(wxCommandEvent& event);
+
+    DECLARE_EVENT_TABLE() 
+};
+
+enum
+{
+    ID_Quit = 1,
+    ID_About,
+    ID_Run,
+    ID_BasicSettings,
+    ID_AdvancedSettings,
+    ID_LoadSettings,
+    ID_LoadFibers,
+    ID_LoadGrads,
+    ID_BUTTON_Exit,
+};
+
+BEGIN_EVENT_TABLE(MyFrame, wxFrame)
+    EVT_MENU(ID_Run, MyFrame::OnRun)
+    EVT_MENU(ID_Quit, MyFrame::OnQuit)
+    EVT_MENU(ID_About, MyFrame::OnAbout)
+    EVT_MENU(ID_BasicSettings, MyFrame::OnBasicSettings)
+    EVT_MENU(ID_AdvancedSettings, MyFrame::OnAdvancedSettings)
+    EVT_MENU(ID_LoadSettings, MyFrame::OnLoadSettings)
+    EVT_MENU(ID_LoadFibers, MyFrame::OnLoadFibers)
+    EVT_MENU(ID_LoadGrads, MyFrame::OnLoadGrads)
+END_EVENT_TABLE()
+
+BEGIN_EVENT_TABLE(SettingsFrame, wxFrame)
+    EVT_BUTTON(ID_BUTTON_Exit, SettingsFrame::OnExit)
+END_EVENT_TABLE()
+
+BEGIN_EVENT_TABLE(AdvancedSettingsFrame, wxFrame)
+    EVT_BUTTON(ID_BUTTON_Exit, AdvancedSettingsFrame::OnExit)
+END_EVENT_TABLE()
+
+
+class MyApp: public wxApp
+{
+    virtual bool OnInit();
+    
+    MyFrame *frame2;
+    wxFrame *frame;
+    //SettingsFrame *basicSettingsFrame;
+    AdvancedSettingsFrame *myAdvancedSettingsFrame;
+    BasicGLPane * glPane;
+public:
+    
+};
+
+// Start dSim definitions
 
 #define PI 3.14159265358979f
 // view params
@@ -142,6 +240,182 @@ SpinRenderer *renderer = 0;
 float modelView[16];
 
 ParamListGL *params;
+// End dSim definitions
+
+ 
+IMPLEMENT_APP(MyApp)
+ 
+ 
+bool MyApp::OnInit()
+{
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+    //frame = new wxFrame((wxFrame *)NULL, -1,  wxT("wxWidgets with GL"), wxPoint(450,450), wxSize(400,200));
+
+    frame2 = new MyFrame( _("dSim"), wxPoint(50, 50), wxSize(800,600) );
+    //basicSettingsFrame = new SettingsFrame( _("Basic Settings"), wxPoint(100,100), wxSize(400,400) );
+    myAdvancedSettingsFrame = new AdvancedSettingsFrame( _("Advanced Settings"), wxPoint(600,100), wxSize(400,400) );
+	
+    int args[] = {WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0};
+    
+    glPane = new BasicGLPane( (wxFrame*) frame2, args);
+    sizer->Add(glPane, 1, wxEXPAND);
+
+    frame2->SetSizer(sizer);
+    frame2->SetAutoLayout(true);
+    frame2->Show();
+
+    //basicSettingsFrame->Show();
+    myAdvancedSettingsFrame->Show();
+
+    //frame->SetSizer(sizer);
+    //frame->SetAutoLayout(true);
+	
+    //frame->Show();
+    return true;
+} 
+ 
+BEGIN_EVENT_TABLE(BasicGLPane, wxGLCanvas)
+EVT_MOTION(BasicGLPane::mouseMoved)
+EVT_LEFT_DOWN(BasicGLPane::mouseDown)
+EVT_LEFT_UP(BasicGLPane::mouseReleased)
+EVT_RIGHT_DOWN(BasicGLPane::rightClick)
+EVT_LEAVE_WINDOW(BasicGLPane::mouseLeftWindow)
+EVT_SIZE(BasicGLPane::resized)
+EVT_KEY_DOWN(BasicGLPane::keyPressed)
+EVT_KEY_UP(BasicGLPane::keyReleased)
+EVT_MOUSEWHEEL(BasicGLPane::mouseWheelMoved)
+EVT_PAINT(BasicGLPane::render)
+END_EVENT_TABLE()
+ 
+ 
+// some useful events to use
+void BasicGLPane::mouseMoved(wxMouseEvent& event) {}
+void BasicGLPane::mouseDown(wxMouseEvent& event) {}
+void BasicGLPane::mouseWheelMoved(wxMouseEvent& event) {}
+void BasicGLPane::mouseReleased(wxMouseEvent& event) {}
+void BasicGLPane::rightClick(wxMouseEvent& event) {}
+void BasicGLPane::mouseLeftWindow(wxMouseEvent& event) {}
+void BasicGLPane::keyPressed(wxKeyEvent& event) {}
+void BasicGLPane::keyReleased(wxKeyEvent& event) {}
+ 
+// Vertices and faces of a simple cube to demonstrate 3D render
+// source: http://www.opengl.org/resources/code/samples/glut_examples/examples/cube.c
+GLfloat v[8][3];
+GLint faces[6][4] = {  /* Vertex indices for the 6 faces of a cube. */
+    {0, 1, 2, 3}, {3, 2, 6, 7}, {7, 6, 5, 4},
+    {4, 5, 1, 0}, {5, 6, 2, 1}, {7, 4, 0, 3} };
+
+
+
+/*_______________________________________________________________________________
+ * MR Diffusion Simulation (dSim)
+ *_______________________________________________________________________________
+ *
+ * Copyright 2008 Bob Dougherty (bobd@stanford.edu)
+ *
+ * Portions of this code are based on the NVidia 'Spins' demo 
+ * distributed with the CUDA SDK and are thus copyright 1993-2007 
+ * NVIDIA Corporation. Details are provided in the individual source 
+ * files (e.g., renderSpins.cpp).
+ */
+
+/*
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <algorithm>
+#include <math.h>
+#include <cutil.h>
+#include <fstream>
+#include <string.h>
+#include <sys/time.h>
+#include <GL/glew.h>
+#include <GL/glut.h>
+#include <GL/freeglut.h>
+#include <GL/gl.h>
+#include <gtk/gtk.h>
+#include <gtk/gtkgl.h>
+#include <libconfig.h++>
+
+#include "spinSystem.h"
+#include "renderSpins.h"
+#include "paramgl.h"
+
+
+// We'll create a very simple linked list of gradient parameter sets.
+typedef struct _gradStruct
+{
+  float lDelta;
+  float bDelta;
+  float readOut;
+  float gx;
+  float gy;
+  float gz;
+  struct _gradStruct *next;
+}gradStruct;
+gradStruct *gGrads = NULL;
+
+
+#define PI 3.14159265358979f
+// view params
+bool quitProgram = 0;
+
+int ox, oy;
+int buttonState = 0;
+float camera_trans[] = {0, 0, -3};
+float camera_rot[]   = {0, 0, 0};
+float camera_trans_lag[] = {0, 0, -3};
+float camera_rot_lag[] = {0, 0, 0};
+const float inertia = 0.1;
+float fiberAlpha = 0.3f;
+
+FILE *outFilePtr;
+
+bool renderSpins = true;
+bool bPause = false;
+bool displaySliders = false;
+bool wireframe = false;
+bool renderFibers = false;
+bool renderSpheres = false;
+bool isExit = false;
+bool renderCubes = false;
+float time_in_sec= 0.0f;
+
+SpinRenderer::DisplayMode displayMode = SpinRenderer::SPIN_SPHERES;
+
+//
+// Simulation parameter defaults
+//
+// Most of these will be over-ridden by the configuration file.
+//
+float gyromagneticRatio = 42576.0f; // in KHz/T, which is equivalent to (cycles/millisecond)/T
+//float larmorFreq = gyromagneticRatio * fieldStrength * 1e3f; // in Hz
+float timestep = 0.005f; 		// in msec
+float extraAdc = 2.0f;       		// micrometers^2/msec
+float intraAdc = 2.0f;
+float myelinAdc = 0.1;
+float extraT2 = 80;;
+float intraT2 = 80;
+float myelinT2 = 7.5;
+//float intraAdcScale = 1.0f;
+int iterations = 1;
+float permeability = -4.0f;
+uint stepCount = 0;
+
+SpinSystem *psystem = 0;
+SpinSystem *psystemStill = 0;
+
+// timesteps per second
+time_t lastUpdateTime = 0;
+float totalKernelTime = 0.0f;
+float curStepsPerSec = 0.0f;
+
+SpinRenderer *renderer = 0;
+
+float modelView[16];
+
+ParamListGL *params;
+*/
 
 //
 // Function: initGL() 
@@ -166,6 +440,7 @@ void initGL()
     glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
     glutReportErrors();
 }
+
 
 float calculateFlops()
 {
@@ -587,7 +862,11 @@ inline float frand()
 }
 
 // commented out to remove unused parameter warnings in Linux 
-void key(unsigned char key, int /*x*/, int /*y*/)
+void key(unsigned char key, int 
+    //x
+     , int 
+    //y
+    )
 {
 
     switch (key) 
@@ -705,80 +984,6 @@ void initMenus()
 }
 
 
-// Stop the GTK+ main loop function when the window is destroyed.
-static void destroy (GtkWidget *window, gpointer data) {
-	gtk_main_quit ();
-}
-
-// Return FALSE to destroy the widget. By returning TRUE, you can cancel a delete-event.
-// This can be used to confirm quitting the application.
-static gboolean delete_event (GtkWidget *window, GdkEvent *event, gpointer data) {
-	quitProgram = 1;
-	return FALSE;
-}
-
-// When a file is selected, display the full path in the GtkLabel widget.
-static void gradient_file_changed (GtkFileChooser *fileChooser, GtkLabel *label) {
-
-	gchar *file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (fileChooser));
-	gtk_label_set_text (label, file);
-}
-
-// When a file is selected, display the full path in the GtkLabel widget.
-static void fiber_file_changed (GtkFileChooser *fileChooser, GtkLabel *label) {
-
-	gchar *file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (fileChooser));
-	gtk_label_set_text (label, file);
-
-	//const char *sFiberFileName = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (gtkInputs->inputFiberFileChooser));
-
-	//FILE *fiberFilePtr  = fopen(fiberFileConst,"r");
-
-	printf("file = %s\n", file);
-
-	FILE *fiberFilePtr  = fopen(file,"r");
-
-	if(fiberFilePtr){
-		if(!psystemStill->initFibers(fiberFilePtr, 0.8))
-			exit(-1);
-		fclose(fiberFilePtr);
-	}
-
-	printf("Number of loaded fibers: %i\n", psystemStill->getNumFibers());
-}
-
-// Read the input fields and then kill the GUI when the "Run" button is clicked
-static void runButton_clicked (GtkWidget *runButton, gtkInputStruct *gtkInputs) {
-	//printf("Run button has been clicked!\n");
-
-	//const gchar* spinNumberString;
-	//spinNumberString = gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputSpinNumberField));
-	// *(gtkInputs->pNumSpins) = atoi(spinNumberString);
-
-	*(gtkInputs->pNumSpins) = atoi(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputSpinNumberField)));
-	*(gtkInputs->pTimestep) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputTimestepField)));
-	*(gtkInputs->pExtraAdc) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputOutsideAdcField)));
-	*(gtkInputs->pExtraT2) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputOutsideT2Field)));
-	*(gtkInputs->pMyelinAdc) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputMyelinAdcField)));
-	*(gtkInputs->pMyelinT2) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputMyelinT2Field)));
-	*(gtkInputs->pIntraAdc) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputInsideAdcField)));
-	*(gtkInputs->pIntraT2) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputInsideT2Field)));
-	*(gtkInputs->pPermeability) = atof(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputPermeabilityField)));
-	*(gtkInputs->pStepsPerUpdate) = atoi(gtk_entry_get_text(GTK_ENTRY (gtkInputs->inputStepsPerUpdateField)));
-	*(gtkInputs->pUseGpu) = (bool) gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gtkInputs->inputUseGpuRadioButton));
-	*(gtkInputs->pUseDisplay) = (bool) gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (gtkInputs->inputRenderOutputCheckButton));
-
-	*(gtkInputs->sGradientFileName) = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (gtkInputs->inputGradientFileChooser));
-	*(gtkInputs->sFiberFileName) = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (gtkInputs->inputFiberFileChooser));
-
-	// Destroy the GUI window
-	gtk_widget_destroy (gtkInputs->inputWindow);
-
-	// Break out of the GTK main loop
-	gtk_main_quit ();
-}
-
-
 float boxv[][3] = {
 	{ -0.5, -0.5, -0.5 },
 	{  0.5, -0.5, -0.5 },
@@ -793,273 +998,15 @@ float boxv[][3] = {
 
 static float ang = 30.;
 
+
 /*
-static gboolean
-expose (GtkWidget *da, GdkEventExpose *event, gpointer user_data)
-{
 
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
-
-	// g_print (" :: expose\n");
-
-	if (!gdk_gl_drawable_gl_begin (gldrawable, glcontext))
-	{
-		g_assert_not_reached ();
-	}
-
-	// Draw in here
-	// Note: Am temporarily trying to draw fibers, am mostly copying from display(), will clean up later
-
-	// render
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
-
-	// view transform
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	for (int c = 0; c < 3; ++c)
-	{
-		camera_trans_lag[c] += (camera_trans[c] - camera_trans_lag[c]) * inertia;
-		camera_rot_lag[c] += (camera_rot[c] - camera_rot_lag[c]) * inertia;
-	}
-	glTranslatef(camera_trans_lag[0], camera_trans_lag[1], camera_trans_lag[2]);
-	glRotatef(camera_rot_lag[0], 1.0, 0.0, 0.0);
-	glRotatef(camera_rot_lag[1], 0.0, 1.0, 0.0);
-
-	glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
-
-
-	glEnable(GL_BLEND);                 // Turn blending On
-	glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);  // Simple transparency
-
-	for(int i=0; i<psystemStill->getNumFibers(); i++){
-		float *p = psystemStill->getFiberPos(i);
-		// The squared radius is stored
-		float radius = sqrt(p[3]);
-		glPushMatrix();
-		glColor4f(0.0, 0.3, 0.1, fiberAlpha);
-
-		if(p[2]==2.0f){
-			glTranslatef(p[0], p[1], -1.0f);
-			glutSolidCylinder(radius, 2, 20, 1);
-		}else if(p[1]==2.0f){
-			glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-			glTranslatef(p[0], p[2], -1.0f);
-			glutSolidCylinder(radius, 2, 20, 1);
-		}else if(p[0]==2.0f){
-			glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
-			glTranslatef(p[1], p[2], -1.0f);
-			glutSolidCylinder(radius, 2, 20, 1);
-		}else{
-			// It's a sphere
-			glColor4f(0.0, 0.2, 1.0, fiberAlpha);
-			glTranslatef(p[0], p[1], p[2]);
-			glutSolidSphere(radius, 20, 20);
-		}
-		glPopMatrix();
-	}
-	glDisable(GL_BLEND);
-
-   	//glutSwapBuffers();
-
-	if (gdk_gl_drawable_is_double_buffered (gldrawable))
-		gdk_gl_drawable_swap_buffers (gldrawable);
-
-	else
-		glFlush ();
-
-	gdk_gl_drawable_gl_end (gldrawable);
-
-	return TRUE;
-}*/
-
-
-
-static gboolean
-expose (GtkWidget *da, GdkEventExpose *event, gpointer user_data)
-{
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
-
-	// g_print (" :: expose\n");
-
-	if (!gdk_gl_drawable_gl_begin (gldrawable, glcontext))
-	{
-		g_assert_not_reached ();
-	}
-
-	// Draw in here
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glPushMatrix();
-	
-	glRotatef (ang, 1, 0, 1);
-	// glRotatef (ang, 0, 1, 0);
-	// glRotatef (ang, 0, 0, 1);
-
-	glShadeModel(GL_FLAT);
-
-#if 0
-	glBegin (GL_QUADS);
-	glColor4f(0.0, 0.0, 1.0, ALPHA);
-	glVertex3fv(boxv[0]);
-	glVertex3fv(boxv[1]);
-	glVertex3fv(boxv[2]);
-	glVertex3fv(boxv[3]);
-
-	glColor4f(1.0, 1.0, 0.0, ALPHA);
-	glVertex3fv(boxv[0]);
-	glVertex3fv(boxv[4]);
-	glVertex3fv(boxv[5]);
-	glVertex3fv(boxv[1]);
-	
-	glColor4f(0.0, 1.0, 1.0, ALPHA);
-	glVertex3fv(boxv[2]);
-	glVertex3fv(boxv[6]);
-	glVertex3fv(boxv[7]);
-	glVertex3fv(boxv[3]);
-	
-	glColor4f(1.0, 0.0, 0.0, ALPHA);
-	glVertex3fv(boxv[4]);
-	glVertex3fv(boxv[5]);
-	glVertex3fv(boxv[6]);
-	glVertex3fv(boxv[7]);
-	
-	glColor4f(1.0, 0.0, 1.0, ALPHA);
-	glVertex3fv(boxv[0]);
-	glVertex3fv(boxv[3]);
-	glVertex3fv(boxv[7]);
-	glVertex3fv(boxv[4]);
-	
-	glColor4f(0.0, 1.0, 0.0, ALPHA);
-	glVertex3fv(boxv[1]);
-	glVertex3fv(boxv[5]);
-	glVertex3fv(boxv[6]);
-	glVertex3fv(boxv[2]);
-
-	glEnd ();
-#endif
-
-	glBegin (GL_LINES);
-	glColor3f (1., 0., 0.);
-	glVertex3f (0., 0., 0.);
-	glVertex3f (1., 0., 0.);
-	glEnd ();
-	
-	glBegin (GL_LINES);
-	glColor3f (0., 1., 0.);
-	glVertex3f (0., 0., 0.);
-	glVertex3f (0., 1., 0.);
-	glEnd ();
-	
-	glBegin (GL_LINES);
-	glColor3f (0., 0., 1.);
-	glVertex3f (0., 0., 0.);
-	glVertex3f (0., 0., 1.);
-	glEnd ();
-
-	glBegin(GL_LINES);
-	glColor3f (1., 1., 1.);
-	glVertex3fv(boxv[0]);
-	glVertex3fv(boxv[1]);
-	
-	glVertex3fv(boxv[1]);
-	glVertex3fv(boxv[2]);
-	
-	glVertex3fv(boxv[2]);
-	glVertex3fv(boxv[3]);
-	
-	glVertex3fv(boxv[3]);
-	glVertex3fv(boxv[0]);
-	
-	glVertex3fv(boxv[4]);
-	glVertex3fv(boxv[5]);
-	
-	glVertex3fv(boxv[5]);
-	glVertex3fv(boxv[6]);
-	
-	glVertex3fv(boxv[6]);
-	glVertex3fv(boxv[7]);
-	
-	glVertex3fv(boxv[7]);
-	glVertex3fv(boxv[4]);
-	
-	glVertex3fv(boxv[0]);
-	glVertex3fv(boxv[4]);
-	
-	glVertex3fv(boxv[1]);
-	glVertex3fv(boxv[5]);
-	
-	glVertex3fv(boxv[2]);
-	glVertex3fv(boxv[6]);
-	
-	glVertex3fv(boxv[3]);
-	glVertex3fv(boxv[7]);
-	glEnd();
-
-	glPopMatrix ();
-
-	if (gdk_gl_drawable_is_double_buffered (gldrawable))
-		gdk_gl_drawable_swap_buffers (gldrawable);
-
-	else
-		glFlush ();
-
-	gdk_gl_drawable_gl_end (gldrawable);
-
-	return TRUE;
-}
-
-
-static gboolean
-configure (GtkWidget *da, GdkEventConfigure *event, gpointer user_data)
-{
-	GdkGLContext *glcontext = gtk_widget_get_gl_context (da);
-	GdkGLDrawable *gldrawable = gtk_widget_get_gl_drawable (da);
-
-	if (!gdk_gl_drawable_gl_begin (gldrawable, glcontext))
-	{
-		g_assert_not_reached ();
-	}
-
-	glLoadIdentity();
-	glViewport (0, 0, da->allocation.width, da->allocation.height);
-	glOrtho (-10,10,-10,10,-20050,10000);
-	glEnable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glScalef (10., 10., 10.);
-	
-	gdk_gl_drawable_gl_end (gldrawable);
-
-	return TRUE;
-}
-
-static gboolean
-rotate (gpointer user_data)
-{
-	GtkWidget *da = GTK_WIDGET (user_data);
-
-	ang++;
-
-	gdk_window_invalidate_rect (da->window, &da->allocation, FALSE);
-	gdk_window_process_updates (da->window, FALSE);
-
-	return TRUE;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Program main
-//
-// TO DO:
-//   * Add command-line help text
-//
-////////////////////////////////////////////////////////////////////////////////
+int main(int argc, char* argv[]) {
+*/
 using namespace libconfig;
 using namespace std;
 
-int main(int argc, char* argv[]) {
-
+void mainDiffusion(int argc, char* argv[]){
 	bool useGpu = true;
 	bool useDisplay = true;
 	uint numSpins = 20000;
@@ -1075,8 +1022,8 @@ int main(int argc, char* argv[]) {
 	float fiberSpaceStd = 0.02f;
 	float fiberInnerRadiusProportion = 0.8f;
 	float crossFraction = 0.0f;
+        printf("Number of spins: %i \n", numSpins);
 	psystemStill = new SpinSystem(100, 0, 20, gyromagneticRatio, 1);
-
 	//const char *testGradientFileName = "/home/bragis/Academic/initialTestGradientFileName.grads";
 	//const char *testFiberFileName = "/home/bragis/Academic/initialTestFiberFileName.fibers";
 
@@ -1150,512 +1097,10 @@ int main(int argc, char* argv[]) {
 	}
 
 
-
-	///////////////////////////////////
-	// Start gtk GUI
-
-	GtkWidget *window, *mainTable, *spinNumberLabel,  *spinNumberField, *fieldStrengthLabel, *fieldStrengthField;
-	GtkWidget *timestepLabel, *timestepField, *tissueParameterLabel, *adcLabel, *t2Label, *betweenFibersLabel, *inMyelinLabel;
-	GtkWidget *insideFibersLabel, *permeabilityLabel, *outsideAdcField, *outsideT2Field, *myelinAdcField, *myelinT2Field;
-	GtkWidget *insideAdcField, *insideT2Field, *permeabilityField, *gradientFileChooser, *chosenGradientLabel, *gradientFileLabel;
-	GtkWidget *chosenFibersLabel, *fiberFileLabel, *fiberFileChooser, *settingsTabs, *settingsLabel, *advancedLabel;
-	GtkWidget *settingsTable, *advancedTable, *tempRenderingButton, *tempTimeEvalButton, *outputFileChooser;
-	GtkWidget *stepsPerUpdateLabel, *useCpuRadioButton, *useGpuRadioButton, *renderOutputCheckButton, *stepsPerUpdateField;
-	GtkWidget *useRTreeRadioButton, *useRectGridRadioButton, *allOutputLabel, *insideOutputLabel, *myelinOutputLabel;
-	GtkWidget *outsideOutputLabel, *outputTabs, *lambda1AllLabel, *lambda2AllLabel, *lambda3AllLabel, *mdAllLabel, *faAllLabel;
-	GtkWidget *rdAllLabel, *lambda1InsideLabel, *lambda2InsideLabel, *lambda3InsideLabel, *mdInsideLabel, *faInsideLabel, *rdInsideLabel;
-	GtkWidget *lambda1MyelinLabel, *lambda2MyelinLabel, *lambda3MyelinLabel, *mdMyelinLabel, *faMyelinLabel, *rdMyelinLabel;
-	GtkWidget *lambda1OutsideLabel, *lambda2OutsideLabel, *lambda3OutsideLabel, *mdOutsideLabel, *faOutsideLabel, *rdOutsideLabel;
-	GtkWidget *allOutputTable, *insideOutputTable, *myelinOutputTable, *outsideOutputTable, *saveOutputButton, *runButton;
-	GtkWidget *simpleCollisionsRadioButton, *advancedCollisionsRadioButton, *drawArea, *window2;
-	GtkFileFilter *allFilesFilter, *gradientFilesFilter, *fiberFilesFilter;
-	GdkGLConfig *glconfig;
-
-
-	gtk_init (&argc, &argv);
-	gtk_gl_init (&argc, &argv);
-
-	// Create the drawing area for displaying GL
-	drawArea = gtk_drawing_area_new ();
-
-	// Will delete these
-	tempRenderingButton = gtk_button_new_with_label ("Rendering of diffusion\nwill go here");
-	tempTimeEvalButton = gtk_button_new_with_label ("Time evolution of gradient\nand signal\nwill go here");
-	saveOutputButton = gtk_button_new_with_label ("Save output\nto m-file");
-	runButton = gtk_button_new_with_label ("Run simulation");
-
-	// Create the window
-	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title (GTK_WINDOW (window), "Diffusion Simulator");
-	gtk_container_set_border_width (GTK_CONTAINER (window), 10);
-	gtk_widget_set_size_request (window, 1200, 550);
-
-	window2 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title (GTK_WINDOW (window2), "Diffusion Simulator GL");
-	gtk_container_set_border_width (GTK_CONTAINER (window), 10);
-	gtk_widget_set_size_request (window, 800, 550);
-
-	// Create the tables
-	mainTable = gtk_table_new (2,4,TRUE);
-	settingsTable = gtk_table_new (15,4,TRUE);
-	advancedTable = gtk_table_new (10,4,TRUE);
-	allOutputTable = gtk_table_new (8,1,TRUE);
-	insideOutputTable = gtk_table_new (8,1,TRUE);
-	myelinOutputTable = gtk_table_new (8,1,TRUE);
-	outsideOutputTable = gtk_table_new (8,1,TRUE);
-
-	// Create notebooks for settings and output
-	settingsTabs = gtk_notebook_new ();
-	settingsLabel = gtk_label_new ("Settings");
-	advancedLabel = gtk_label_new ("Advanced");
-	outputTabs = gtk_notebook_new ();
-	allOutputLabel = gtk_label_new ("All");
-	insideOutputLabel = gtk_label_new ("Inside");
-	myelinOutputLabel = gtk_label_new ("Myelin");
-	outsideOutputLabel = gtk_label_new ("Outside");
-
-	// Create callback functions for clicking of notebook
-	//g_signal_connect (G_OBJECT (settingsTable), "clicked",
-	//		  G_CALLBACK (switch_page),
-	//		  (gpointer) settingsTabs);
-	//g_signal_connect (G_OBJECT (advancedTable), "clicked",
-	//		  G_CALLBACK (switch_page),
-	//		  (gpointer) settingsTabs);
-
-
-	// Append to pages to the notebook containers.
-	gtk_notebook_append_page (GTK_NOTEBOOK (settingsTabs), settingsTable, settingsLabel);
-	gtk_notebook_append_page (GTK_NOTEBOOK (settingsTabs), advancedTable, advancedLabel);
-	gtk_notebook_set_tab_pos (GTK_NOTEBOOK (settingsTabs), GTK_POS_TOP);
-
-	gtk_notebook_append_page (GTK_NOTEBOOK (outputTabs), allOutputTable, allOutputLabel);
-	gtk_notebook_append_page (GTK_NOTEBOOK (outputTabs), insideOutputTable, insideOutputLabel);
-	gtk_notebook_append_page (GTK_NOTEBOOK (outputTabs), myelinOutputTable, myelinOutputLabel);
-	gtk_notebook_append_page (GTK_NOTEBOOK (outputTabs), outsideOutputTable, outsideOutputLabel);
-	gtk_notebook_set_tab_pos (GTK_NOTEBOOK (outputTabs), GTK_POS_TOP);
-
-
-	// Create labels for basic settings
-	spinNumberLabel = gtk_label_new ("Number of spins: ");
-	fieldStrengthLabel = gtk_label_new ("Field strength (T): ");
-	timestepLabel = gtk_label_new ("Time step: ");
-	tissueParameterLabel = gtk_label_new ("Tissue parameters");
-	adcLabel = gtk_label_new ("ADC");
-	t2Label = gtk_label_new ("T2");
-	betweenFibersLabel = gtk_label_new ("Between fibers");
-	inMyelinLabel = gtk_label_new ("In myelin");
-	insideFibersLabel = gtk_label_new ("Inside fibers");
-	permeabilityLabel = gtk_label_new ("Permeability");
-	chosenGradientLabel = gtk_label_new("Gradient file:");
-	gradientFileLabel = gtk_label_new ("");
-	chosenFibersLabel = gtk_label_new("Fiber file:");
-	fiberFileLabel = gtk_label_new ("");
-
-	// Create labels for advanced settings
-	stepsPerUpdateLabel = gtk_label_new ("Steps per update: ");
-
-	// Create labels for output tabs
-	lambda1AllLabel = gtk_label_new ("\u03BB1: ");
-	lambda2AllLabel = gtk_label_new ("\u03BB2: ");
-	lambda3AllLabel = gtk_label_new ("\u03BB3: ");
-	lambda1InsideLabel = gtk_label_new ("\u03BB1: ");
-	lambda2InsideLabel = gtk_label_new ("\u03BB2: ");
-	lambda3InsideLabel = gtk_label_new ("\u03BB3: ");
-	lambda1MyelinLabel = gtk_label_new ("\u03BB1: ");
-	lambda2MyelinLabel = gtk_label_new ("\u03BB2: ");
-	lambda3MyelinLabel = gtk_label_new ("\u03BB3: ");
-	lambda1OutsideLabel = gtk_label_new ("\u03BB1: ");
-	lambda2OutsideLabel = gtk_label_new ("\u03BB2: ");
-	lambda3OutsideLabel = gtk_label_new ("\u03BB3: ");
-	mdAllLabel = gtk_label_new ("md: ");
-	faAllLabel = gtk_label_new ("fa: ");
-	rdAllLabel = gtk_label_new ("rd: ");
-	mdInsideLabel = gtk_label_new ("md: ");
-	faInsideLabel = gtk_label_new ("fa: ");
-	rdInsideLabel = gtk_label_new ("rd: ");
-	mdMyelinLabel = gtk_label_new ("md: ");
-	faMyelinLabel = gtk_label_new ("fa: ");
-	rdMyelinLabel = gtk_label_new ("rd: ");
-	mdOutsideLabel = gtk_label_new ("md: ");
-	faOutsideLabel = gtk_label_new ("fa: ");
-	rdOutsideLabel = gtk_label_new ("rd: ");
-
-	// Create entry fields for basic settings
-	char tempEntryStr [30];
-	spinNumberField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (spinNumberField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (spinNumberField), "20000");
-	sprintf(tempEntryStr,"%d",numSpins);
-	gtk_entry_set_text (GTK_ENTRY (spinNumberField), tempEntryStr);
-	// Note: Does the field strength matter at all?
-	fieldStrengthField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (fieldStrengthField), 6);
-	gtk_entry_set_text (GTK_ENTRY (fieldStrengthField), "1.5");
-	timestepField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (timestepField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (timestepField), "0.005");
-	sprintf(tempEntryStr,"%.3f",timestep);
-	gtk_entry_set_text (GTK_ENTRY (timestepField), tempEntryStr);
-	outsideAdcField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (outsideAdcField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (outsideAdcField), "2.1");
-	sprintf(tempEntryStr,"%.1f",extraAdc);
-	gtk_entry_set_text (GTK_ENTRY (outsideAdcField), tempEntryStr);
-	outsideT2Field = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (outsideT2Field), 6);
-	//gtk_entry_set_text (GTK_ENTRY (outsideT2Field), "80");
-	sprintf(tempEntryStr,"%.1f",extraT2);
-	gtk_entry_set_text (GTK_ENTRY (outsideT2Field), tempEntryStr);
-	myelinAdcField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (myelinAdcField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (myelinAdcField), "0.1");
-	sprintf(tempEntryStr,"%.1f",myelinAdc);
-	gtk_entry_set_text (GTK_ENTRY (myelinAdcField), tempEntryStr);
-	myelinT2Field = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (myelinT2Field), 6);
-	//gtk_entry_set_text (GTK_ENTRY (myelinT2Field), "7.5");
-	sprintf(tempEntryStr,"%.1f",myelinT2);
-	gtk_entry_set_text (GTK_ENTRY (myelinT2Field), tempEntryStr);
-	insideAdcField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (insideAdcField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (insideAdcField), "2.1");
-	sprintf(tempEntryStr,"%.1f",intraAdc);
-	gtk_entry_set_text (GTK_ENTRY (insideAdcField), tempEntryStr);
-	insideT2Field = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (insideT2Field), 6);
-	//gtk_entry_set_text (GTK_ENTRY (insideT2Field), "80");
-	sprintf(tempEntryStr,"%.1f",intraT2);
-	gtk_entry_set_text (GTK_ENTRY (insideT2Field), tempEntryStr);
-	permeabilityField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (permeabilityField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (permeabilityField), "-6");
-	sprintf(tempEntryStr,"%.1f",permeability);
-	gtk_entry_set_text (GTK_ENTRY (permeabilityField), tempEntryStr);
-
-	// Create entry fields for advanced settings
-	stepsPerUpdateField = gtk_entry_new ();
-	gtk_entry_set_width_chars (GTK_ENTRY (stepsPerUpdateField), 6);
-	//gtk_entry_set_text (GTK_ENTRY (stepsPerUpdateField), "10");
-	sprintf(tempEntryStr,"%i",iterations);
-	gtk_entry_set_text(GTK_ENTRY (stepsPerUpdateField), tempEntryStr);
-
-	// Create file chooser buttons
-	gradientFileChooser = gtk_file_chooser_button_new ("Choose gradient file", GTK_FILE_CHOOSER_ACTION_OPEN);
-	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON (gradientFileChooser), 10);
-	gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (gradientFileChooser), gradsFile);
-	fiberFileChooser = gtk_file_chooser_button_new ("Choose fiber file", GTK_FILE_CHOOSER_ACTION_OPEN);
-	gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON (fiberFileChooser), 10);
-	gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (fiberFileChooser), fiberFileConst);
-
-	// Create output file chooser
-	//outputFileChooser = gtk_file_chooser_button_new ("Choose file for saving output", GTK_FILE_CHOOSER_ACTION_SAVE);
-	//gtk_file_chooser_button_set_width_chars(GTK_FILE_CHOOSER_BUTTON (outputFileChooser), 10);
-	//gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (outputFileChooser), "/output.m");
-	
-
-	// Monitor when the selected file is changed.
-	g_signal_connect (G_OBJECT (gradientFileChooser), "selection_changed", G_CALLBACK (gradient_file_changed), (gpointer) gradientFileLabel);
-	g_signal_connect (G_OBJECT (fiberFileChooser), "selection_changed", G_CALLBACK (fiber_file_changed), (gpointer) fiberFileLabel);
-
-	// Set file chooser buttons to the location of the user's home directory.
-	//gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (gradientFileChooser), g_get_home_dir());
-	//gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (fiberFileChooser), g_get_home_dir());
-
-	// Provide a filter to show all files and one to show only 3 types of images.
-	allFilesFilter = gtk_file_filter_new ();
-	gtk_file_filter_set_name (allFilesFilter, "All files");
-	gtk_file_filter_add_pattern (allFilesFilter, "*");
-	gradientFilesFilter = gtk_file_filter_new ();
-	gtk_file_filter_set_name (gradientFilesFilter, "Gradient files");
-	gtk_file_filter_add_pattern (gradientFilesFilter, "*.grads");
-	fiberFilesFilter = gtk_file_filter_new ();
-	gtk_file_filter_set_name (fiberFilesFilter, "Fiber files");
-	gtk_file_filter_add_pattern (fiberFilesFilter, "*.fibers");
-
-	// Add filters to the file chooser buttons
-	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (gradientFileChooser), gradientFilesFilter);
-	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (gradientFileChooser), allFilesFilter);
-	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (fiberFileChooser), fiberFilesFilter);
-	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (fiberFileChooser), allFilesFilter);
-
-
-	// Create buttons for the advanced settings tab
-	useCpuRadioButton = gtk_radio_button_new_with_label (NULL, "Use CPU");
-	useGpuRadioButton = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (useCpuRadioButton), "Use GPU");
-	renderOutputCheckButton = gtk_check_button_new_with_label ("Render output");
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (renderOutputCheckButton), TRUE);
-	useRTreeRadioButton = gtk_radio_button_new_with_label (NULL, "Use R-Tree");
-	useRectGridRadioButton = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (useRTreeRadioButton), "Use grid");
-	simpleCollisionsRadioButton = gtk_radio_button_new_with_label(NULL, "Simple collisions");
-	advancedCollisionsRadioButton = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (simpleCollisionsRadioButton), "Advanced collisions");
-
-
-	// Create the table for the basic settings - belongs to a notebook tab
-	gtk_table_attach (GTK_TABLE (settingsTable), spinNumberLabel, 0, 2, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), spinNumberField, 2, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), fieldStrengthLabel, 0, 2, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), fieldStrengthField, 2, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), timestepLabel, 0, 2, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), timestepField, 2, 3, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), tissueParameterLabel, 0, 4, 5, 6,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), adcLabel, 2, 3, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), t2Label, 3, 4, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), betweenFibersLabel, 0, 2, 7, 8,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), outsideAdcField, 2, 3, 7, 8,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), outsideT2Field, 3, 4, 7, 8,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), inMyelinLabel, 0, 2, 8, 9,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), myelinAdcField, 2, 3, 8, 9,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), myelinT2Field, 3, 4, 8, 9,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), insideFibersLabel, 0, 2, 9, 10,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), insideAdcField, 2, 3, 9, 10,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), insideT2Field, 3, 4, 9, 10,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), permeabilityLabel, 0, 2, 11, 12,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), permeabilityField, 2, 3, 11, 12,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), chosenGradientLabel, 0, 2, 13, 14,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), gradientFileChooser, 2, 4, 13, 14,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), chosenFibersLabel, 0, 2, 14, 15,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (settingsTable), fiberFileChooser, 2, 4, 14, 15,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-
-
-	// Create the table for the advanced settings - belongs to a notebook tab
-	gtk_table_attach (GTK_TABLE (advancedTable), useCpuRadioButton, 0, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), useGpuRadioButton, 0, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), renderOutputCheckButton, 0, 3, 4, 5,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), stepsPerUpdateLabel, 0, 2, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), stepsPerUpdateField, 2, 4, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), useRTreeRadioButton, 0, 3, 8, 9,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), useRectGridRadioButton, 0, 3, 9, 10,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), simpleCollisionsRadioButton, 0, 3, 11, 12,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (advancedTable), advancedCollisionsRadioButton, 0, 3, 12, 13,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	
-
-	// Create the table for the output - belongs to a notebook tab
-	gtk_table_attach (GTK_TABLE (allOutputTable), lambda1AllLabel, 1, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (allOutputTable), lambda2AllLabel, 1, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (allOutputTable), lambda3AllLabel, 1, 3, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (allOutputTable), mdAllLabel, 1, 3, 4, 5,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (allOutputTable), faAllLabel, 1, 3, 5, 6,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (allOutputTable), rdAllLabel, 1, 3, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-
-	gtk_table_attach (GTK_TABLE (insideOutputTable), lambda1InsideLabel, 1, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (insideOutputTable), lambda2InsideLabel, 1, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (insideOutputTable), lambda3InsideLabel, 1, 3, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (insideOutputTable), mdInsideLabel, 1, 3, 4, 5,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (insideOutputTable), faInsideLabel, 1, 3, 5, 6,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (insideOutputTable), rdInsideLabel, 1, 3, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), lambda1MyelinLabel, 1, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), lambda2MyelinLabel, 1, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), lambda3MyelinLabel, 1, 3, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), mdMyelinLabel, 1, 3, 4, 5,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), faMyelinLabel, 1, 3, 5, 6,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (myelinOutputTable), rdMyelinLabel, 1, 3, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), lambda1OutsideLabel, 1, 3, 1, 2,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), lambda2OutsideLabel, 1, 3, 2, 3,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), lambda3OutsideLabel, 1, 3, 3, 4,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), mdOutsideLabel, 1, 3, 4, 5,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), faOutsideLabel, 1, 3, 5, 6,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	gtk_table_attach (GTK_TABLE (outsideOutputTable), rdOutsideLabel, 1, 3, 6, 7,
-			  GTK_SHRINK, GTK_SHRINK, 0, 0);
-	
-
-	// Attach notebooks and buttons to the main table
-	gtk_table_attach (GTK_TABLE (mainTable), settingsTabs, 0, 1, 0, 4,
-			  GTK_SHRINK, GTK_EXPAND, 0, 0);
-	gtk_table_attach (GTK_TABLE (mainTable), tempRenderingButton, 1, 3, 0, 2,
-			  GTK_EXPAND, GTK_EXPAND, 0, 0);
-	//gtk_table_attach (GTK_TABLE (mainTable), drawArea, 1, 3, 0, 2,
-	//		  GTK_EXPAND, GTK_EXPAND, 0, 0);
-	gtk_table_attach (GTK_TABLE (mainTable), tempTimeEvalButton, 1, 3, 2, 4,
-			  GTK_EXPAND, GTK_EXPAND, 0, 0);
-	gtk_table_attach (GTK_TABLE (mainTable), outputTabs, 3, 4, 0, 2,
-			  GTK_SHRINK, GTK_EXPAND, 0, 0);
-	gtk_table_attach (GTK_TABLE (mainTable), saveOutputButton, 3, 4, 2, 3,
-			  GTK_EXPAND, GTK_EXPAND, 0, 0);
-	gtk_table_attach (GTK_TABLE (mainTable), runButton, 3, 4, 3, 4,
-			  GTK_EXPAND, GTK_EXPAND, 0, 0);
-	
-
-	// Add five pixels of spacing between every row and every column.
-	gtk_table_set_row_spacings (GTK_TABLE (mainTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (mainTable), 5);
-	gtk_table_set_row_spacings (GTK_TABLE (settingsTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (settingsTable), 5);
-	gtk_table_set_row_spacings (GTK_TABLE (allOutputTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (allOutputTable), 5);
-	gtk_table_set_row_spacings (GTK_TABLE (insideOutputTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (insideOutputTable), 5);
-	gtk_table_set_row_spacings (GTK_TABLE (myelinOutputTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (myelinOutputTable), 5);
-	gtk_table_set_row_spacings (GTK_TABLE (outsideOutputTable), 5);
-	gtk_table_set_col_spacings (GTK_TABLE (outsideOutputTable), 5);
-
-	// Create an "input structure" - this is necessary because the callback function
-	// for the "run" button accepts a limited number of arguments.
-	gtkInputStruct *gtkInputs = (gtkInputStruct*) malloc(sizeof(gtkInputStruct));
-	gtkInputs->inputWindow = window;
-	gtkInputs->inputSpinNumberField = spinNumberField;
-	gtkInputs->inputFieldStrengthField = fieldStrengthField;
-	gtkInputs->inputTimestepField = timestepField;
-	gtkInputs->inputOutsideAdcField = outsideAdcField;
-	gtkInputs->inputOutsideT2Field = outsideT2Field;
-	gtkInputs->inputMyelinAdcField = myelinAdcField;
-	gtkInputs->inputMyelinT2Field = myelinT2Field;
-	gtkInputs->inputInsideAdcField = insideAdcField;
-	gtkInputs->inputInsideT2Field = insideT2Field;
-	gtkInputs->inputPermeabilityField = permeabilityField;
-	gtkInputs->inputStepsPerUpdateField = stepsPerUpdateField;
-	gtkInputs->inputUseGpuRadioButton = useGpuRadioButton;
-	gtkInputs->inputRenderOutputCheckButton = renderOutputCheckButton;
-	gtkInputs->inputUseRTreeRadioButton = useRTreeRadioButton;
-	gtkInputs->inputSimpleCollisionsRadioButton = simpleCollisionsRadioButton;
-	gtkInputs->pNumSpins = &numSpins;
-	gtkInputs->pTimestep = &timestep;
-	gtkInputs->pExtraAdc = &extraAdc;
-	gtkInputs->pExtraT2 = &extraT2;
-	gtkInputs->pMyelinAdc = &myelinAdc;
-	gtkInputs->pMyelinT2 = &myelinT2;
-	gtkInputs->pIntraAdc = &intraAdc;
-	gtkInputs->pIntraT2 = &intraT2;
-	gtkInputs->pPermeability = &permeability;
-	gtkInputs->pUseGpu = &useGpu;
-	gtkInputs->pUseDisplay = &useDisplay;
-	gtkInputs->pStepsPerUpdate = &iterations;
-	gtkInputs->inputGradientFileChooser = gradientFileChooser;
-	gtkInputs->inputFiberFileChooser = fiberFileChooser;
-	//gtkInputs->sGradientFileName = &testGradientFileName;
-	gtkInputs->sGradientFileName = &gradsFile;
-	//gtkInputs->sFiberFileName = &testFiberFileName;
-	gtkInputs->sFiberFileName = &fiberFileConst;
-
-	// Connect buttons to callback functions
-	g_signal_connect (G_OBJECT (runButton), "clicked", G_CALLBACK (runButton_clicked), (gpointer) gtkInputs);
-
-	// Connect the main window to the destroy and delete-event signals.
-	g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy), NULL);
-	g_signal_connect (G_OBJECT (window), "delete_event", G_CALLBACK (delete_event), NULL);
-
-	gtk_container_add (GTK_CONTAINER (window), mainTable);
-	gtk_container_add (GTK_CONTAINER (window2), drawArea);
-
-	gtk_widget_set_events (drawArea, GDK_EXPOSURE_MASK);
-
-	gtk_widget_show (window);
-	gtk_widget_show (window2);
-	//gtk_widget_show (drawArea);
-
-	glconfig = gdk_gl_config_new_by_mode (static_cast<GdkGLConfigMode>
-			(GDK_GL_MODE_RGB |
-			GDK_GL_MODE_DEPTH |
-			GDK_GL_MODE_DOUBLE) );
-
-	if (!glconfig)
-	{
-		g_assert_not_reached ();
-	}
-	
-	if (!gtk_widget_set_gl_capability (drawArea, glconfig, NULL, TRUE,
-				GDK_GL_RGBA_TYPE))
-	{
-		g_assert_not_reached ();
-	}
-
-	g_signal_connect (drawArea, "configure-event",
-			G_CALLBACK (configure), NULL);
-	g_signal_connect (drawArea, "expose-event",
-			G_CALLBACK (expose), NULL);
-
-	gtk_widget_show_all (window);
-	gtk_widget_show_all (window2);
-
-	//g_timeout_add (1000 / 60, rotate, drawArea);
-
-	gtk_main ();
-
-	printf("Info read from GUI:");
-	printf("numSpins = %i\n",numSpins);
-	printf("timestep = %g\n", timestep);
-	printf("extraAdc = %g\n", extraAdc);
-	printf("extraT2 = %g\n", extraT2);
-	printf("myelinAdc = %g\n", myelinAdc);
-	printf("myelinT2 = %g\n", myelinT2);
-	printf("intraAdc = %g\n", intraAdc);
-	printf("intraT2 = %g\n", intraT2);
-	printf("permeability = %g\n", permeability);
-	printf("useGpu = %i\n", useGpu);
-	printf("useDisplay = %i\n", useDisplay);
-	printf("iterations = %i\n", iterations);
-	printf("gradient file = %s\n", gradsFile);
-	printf("fiber file = %s\n", fiberFileConst);
-	//exit(0);
-
-	// End of gtk GUI
-	/////////////////////////////////////////////////////////////
-
-	if (quitProgram){
-		exit(1);
-	}
-
-
-
+    // Start wxwidgets
+        
     printf("*\nStarting main diffusion run.\n*\n");
+
 
     if (gradsFileGivenInConfigFile){
         printf("Loading gradient sequence from %s.\n", gradsFile);
@@ -1772,6 +1217,7 @@ int main(int argc, char* argv[]) {
 		outFilePtr = NULL;
 	}
 
+	//useDisplay = 0;		// This is temporary - some bug with the display
 	if(useDisplay){
 		// if the display is enabled, then the spin system will keep spin
 		// positions in a vbo array for faster OpenGL updates. So, we need to make sure
@@ -1787,12 +1233,13 @@ int main(int argc, char* argv[]) {
 	else printf("executing simulation on CPU\n");
 
 	// Create a default spin system
+        printf("numSpins right before initializing psystem: %i\n", numSpins);
 	psystem = new SpinSystem(numSpins, useGpu, spaceScale, gyromagneticRatio, useDisplay); 
 	psystem->setAdc(extraAdc,intraAdc,myelinAdc);
 	psystem->setT2(extraT2,intraT2,myelinT2);
 	psystem->setPermeability(pow(10,permeability));
 
-	// Initialize the fiber entites
+	// Initialize the fiber entities
 	if(fiberFilePtr){
 		if(!psystem->initFibers(fiberFilePtr, fiberInnerRadiusProportion))
 			exit(-1);
@@ -1806,7 +1253,7 @@ int main(int argc, char* argv[]) {
 	printf("*\nBuilding the spin system\n*\n");
 	if(!psystem->build()) exit(-1); 
 
-	// Randomize the spins 
+	// Randomize the spins
 	printf("*\nRandomizing the spins\n*\n");
 	psystem->reset(SpinSystem::CONFIG_RANDOM);
 	printf("*\nFinished randomizing the spins\n*\n");
@@ -1842,12 +1289,318 @@ int main(int argc, char* argv[]) {
 
 	}else{
 		// Just run the updates without rendering the spins
-		while(1){    
+		while(1){
 			update();
 		}
 	}
 	if (psystem) delete psystem;
+    
+	//return 0;
 
-	return 0;
+}
 
+////////////////////////////////////////////////////////////////////////////////
+// Program main
+//
+// TO DO:
+//   * Add command-line help text
+//
+////////////////////////////////////////////////////////////////////////////////
+//using namespace libconfig;
+//using namespace std;
+
+
+BasicGLPane::BasicGLPane(wxFrame* parent, int* args) :
+    wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
+{
+	m_context = new wxGLContext(this);
+    // prepare a simple cube to demonstrate 3D render
+    // source: http://www.opengl.org/resources/code/samples/glut_examples/examples/cube.c
+    v[0][0] = v[1][0] = v[2][0] = v[3][0] = -1;
+    v[4][0] = v[5][0] = v[6][0] = v[7][0] = 1;
+    v[0][1] = v[1][1] = v[4][1] = v[5][1] = -1;
+    v[2][1] = v[3][1] = v[6][1] = v[7][1] = 1;
+    v[0][2] = v[3][2] = v[4][2] = v[7][2] = 1;
+    v[1][2] = v[2][2] = v[5][2] = v[6][2] = -1;    
+ 
+    // To avoid flashing on MSW
+    SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+}
+ 
+BasicGLPane::~BasicGLPane()
+{
+	delete m_context;
+}
+ 
+void BasicGLPane::resized(wxSizeEvent& evt)
+{
+//	wxGLCanvas::OnSize(evt);
+	
+    Refresh();
+}
+ 
+/** Inits the OpenGL viewport for drawing in 3D. */
+void BasicGLPane::prepare3DViewport(int topleft_x, int topleft_y, int bottomrigth_x, int bottomrigth_y)
+{
+	
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black Background
+    glClearDepth(1.0f);	// Depth Buffer Setup
+    glEnable(GL_DEPTH_TEST); // Enables Depth Testing
+    glDepthFunc(GL_LEQUAL); // The Type Of Depth Testing To Do
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	
+    glEnable(GL_COLOR_MATERIAL);
+	
+    glViewport(topleft_x, topleft_y, bottomrigth_x-topleft_x, bottomrigth_y-topleft_y);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+	
+    float ratio_w_h = (float)(bottomrigth_x-topleft_x)/(float)(bottomrigth_y-topleft_y);
+    gluPerspective(45 /*view angle*/, ratio_w_h, 0.1 /*clip close*/, 200 /*clip far*/);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+	
+}
+ 
+/** Inits the OpenGL viewport for drawing in 2D. */
+void BasicGLPane::prepare2DViewport(int topleft_x, int topleft_y, int bottomrigth_x, int bottomrigth_y)
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black Background
+    glEnable(GL_TEXTURE_2D);   // textures
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+	
+    glViewport(topleft_x, topleft_y, bottomrigth_x-topleft_x, bottomrigth_y-topleft_y);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    
+    gluOrtho2D(topleft_x, bottomrigth_x, bottomrigth_y, topleft_y);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+ 
+int BasicGLPane::getWidth()
+{
+    return GetSize().x;
+}
+ 
+int BasicGLPane::getHeight()
+{
+    return GetSize().y;
+}
+ 
+ 
+void BasicGLPane::render( wxPaintEvent& evt )
+{
+    if(!IsShown()) return;
+    
+    wxGLCanvas::SetCurrent(*m_context);
+    wxPaintDC(this); // only to be used in paint events. use wxClientDC to paint outside the paint event
+	
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+    // ------------- draw some 2D ----------------
+    prepare2DViewport(0,0,getWidth()/2, getHeight());
+    glLoadIdentity();
+	
+    // white background
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_QUADS);
+    glVertex3f(0,0,0);
+    glVertex3f(getWidth(),0,0);
+    glVertex3f(getWidth(),getHeight(),0);
+    glVertex3f(0,getHeight(),0);
+    glEnd();
+	
+    // red square
+    glColor4f(1, 0, 0, 1);
+    glBegin(GL_QUADS);
+    glVertex3f(getWidth()/8, getHeight()/3, 0);
+    glVertex3f(getWidth()*3/8, getHeight()/3, 0);
+    glVertex3f(getWidth()*3/8, getHeight()*2/3, 0);
+    glVertex3f(getWidth()/8, getHeight()*2/3, 0);
+    glEnd();
+    
+    // ------------- draw some 3D ----------------
+
+    prepare3DViewport(getWidth()/2,0,getWidth(), getHeight());
+    glLoadIdentity();
+	
+    glColor4f(0,0,1,1);
+    glTranslatef(0,0,-5);
+    glRotatef(50.0f, 0.0f, 1.0f, 0.0f);
+    
+    glColor4f(1, 0, 0, 1);
+    for (int i = 0; i < 6; i++)
+    {
+        glBegin(GL_LINE_STRIP);
+        glVertex3fv(&v[faces[i][0]][0]);
+        glVertex3fv(&v[faces[i][1]][0]);
+        glVertex3fv(&v[faces[i][2]][0]);
+        glVertex3fv(&v[faces[i][3]][0]);
+        glVertex3fv(&v[faces[i][0]][0]);
+        glEnd();
+    }
+    
+    glFlush();
+    SwapBuffers();
+}
+
+
+MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
+: wxFrame( NULL, -1, title, pos, size )
+{
+    SettingsFrame *basicSettingsFrame;
+    basicSettingsFrame = new SettingsFrame( _("Basic Settings"), wxPoint(100,100), wxSize(400,400) );
+
+    basicSettingsFrame->Show();
+
+    wxMenu *menuFile = new wxMenu;
+    wxMenu *menuSettings = new wxMenu;
+
+    menuFile->Append( ID_Run, _("&Run") );
+    menuFile->AppendSeparator();
+    menuFile->Append( ID_About, _("&About...") );
+    menuFile->AppendSeparator();
+    menuFile->Append( ID_Quit, _("E&xit") );
+
+    menuSettings->Append( ID_BasicSettings, _("&Basic") );
+    menuSettings->Append( ID_AdvancedSettings, _("&Advanced") );
+    menuSettings->AppendSeparator();
+    menuSettings->Append( ID_LoadSettings, _("Load &settings file") );
+    menuSettings->Append( ID_LoadFibers, _("Load &fiber file") );
+    menuSettings->Append( ID_LoadGrads, _("Load &gradient file") );
+
+    wxMenuBar *menuBar = new wxMenuBar;
+    menuBar->Append( menuFile, _("&File") );
+    menuBar->Append( menuSettings, _("&Settings") );
+
+    SetMenuBar( menuBar );
+
+    CreateStatusBar();
+    SetStatusText( _("This will contain some helpful explanation message") );
+}
+
+
+
+void MyFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
+{
+    Close(TRUE);
+}
+
+void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
+{
+    wxMessageBox( _("Program information:\ndSim (Diffusion Simulator) is a program to simulate the diffusion of spins within a volume of fibers, measured within one TR of an MRI sequence. Developed by Bob Dougherty and Bragi Sveinsson."),
+                  _("About dSim"),
+                  wxOK | wxICON_INFORMATION, this);
+}
+
+void MyFrame::OnRun(wxCommandEvent& WXUNUSED(event))
+{
+  // Here we would start the run of the program
+  printf("In OnRun function... \n");
+  int argc = 1;
+  char *argv;
+  mainDiffusion(argc,&argv);
+}
+
+void MyFrame::OnBasicSettings(wxCommandEvent& WXUNUSED(event))
+{
+    /*wxMessageBox( _("Program information:\ndSim (Diffusion Simulator) is a program to simulate the diffusion of spins within a volume of fibers, measured within one TR of an MRI sequence. Developed by Bob Dougherty and Bragi Sveinsson."),
+                  _("Basic Settings"),
+                  wxOK | wxICON_INFORMATION, this);*/
+    //basicSettingsFrame->Show();
+}
+
+void MyFrame::OnAdvancedSettings(wxCommandEvent& WXUNUSED(event))
+{
+    wxMessageBox( _("Program information:\ndSim (Diffusion Simulator) is a program to simulate the diffusion of spins within a volume of fibers, measured within one TR of an MRI sequence. Developed by Bob Dougherty and Bragi Sveinsson."),
+                  _("Advanced Settings"),
+                  wxOK | wxICON_INFORMATION, this);
+}
+
+void MyFrame::OnLoadSettings(wxCommandEvent& WXUNUSED(event))
+{
+	wxString settingsFile = wxFileSelector(_("Load settings file"),_(""),_("sim.cfg"),_(""),_("cfg files (*.cfg)|*.*|All files (*.*)|*.*"));
+}
+
+void MyFrame::OnLoadFibers(wxCommandEvent& WXUNUSED(event))
+{
+	wxString fiberFile = wxFileSelector(_("Load fiber file"),_(""),_("sim.fibers"),_(""),_("fiber files (*.fibers)|*.*|All files (*.*)|*.*"));
+}
+
+void MyFrame::OnLoadGrads(wxCommandEvent& WXUNUSED(event))
+{
+	wxString gradsFile = wxFileSelector(_("Load gradient file"),_(""),_("sim.grads"),_(""),_("grads files (*.grads)|*.*|All files (*.*)|*.*"));
+}
+
+SettingsFrame::SettingsFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
+: wxFrame( NULL, -1, title, pos, size )
+{
+
+    okButton = new wxButton(this, ID_BUTTON_Exit, _("OK"), wxPoint(200,330), wxDefaultSize, 0);
+    cancelButton = new wxButton(this, ID_BUTTON_Exit, _("Cancel"), wxPoint(300,330), wxDefaultSize, 0);
+
+    spinNumberText = new wxStaticText(this, -1, _("Number of spins:"), wxPoint(50,35), wxDefaultSize,0);
+    spinNumberEntry = new wxTextCtrl(this, -1, _("100"), wxPoint(200,30), wxDefaultSize, 0);
+    timeStepText = new wxStaticText(this, -1, _("Time step:"), wxPoint(50,65), wxDefaultSize,0);
+    timeStepEntry = new wxTextCtrl(this, -1, _("0.005"), wxPoint(200,60), wxDefaultSize, 0);
+
+    ADCText = new wxStaticText(this, -1, _("ADC"), wxPoint(200,120), wxDefaultSize,0);
+    T2Text = new wxStaticText(this, -1, _("T2"), wxPoint(300,120), wxDefaultSize,0);
+
+    betweenFibersText = new wxStaticText(this, -1, _("Between fibers:"), wxPoint(50,145), wxDefaultSize,0);
+    betweenFibersADCEntry = new wxTextCtrl(this, -1, _("2.1"), wxPoint(200,140), wxDefaultSize, 0);
+    betweenFibersT2Entry = new wxTextCtrl(this, -1, _("80.0"), wxPoint(300,140), wxDefaultSize, 0);
+
+    inMyelinText = new wxStaticText(this, -1, _("In myelin:"), wxPoint(50,175), wxDefaultSize,0);
+    inMyelinADCEntry = new wxTextCtrl(this, -1, _("0.1"), wxPoint(200,170), wxDefaultSize, 0);
+    inMyelinT2Entry = new wxTextCtrl(this, -1, _("7.5"), wxPoint(300,170), wxDefaultSize, 0);
+
+    insideFibersText = new wxStaticText(this, -1, _("Inside fibers:"), wxPoint(50,205), wxDefaultSize,0);
+    insideFibersADCEntry = new wxTextCtrl(this, -1, _("2.1"), wxPoint(200,200), wxDefaultSize, 0);
+    insideFibersT2Entry = new wxTextCtrl(this, -1, _("80.0"), wxPoint(300,200), wxDefaultSize, 0);
+
+    permeabilityText = new wxStaticText(this, -1, _("Permeability:"), wxPoint(50,245), wxDefaultSize,0);
+    permeabilityEntry = new wxTextCtrl(this, -1, _("-6.0"), wxPoint(200,240), wxDefaultSize, 0);
+
+    CreateStatusBar();
+    SetStatusText( _("This will contain some helpful explanation message") );
+}
+
+void SettingsFrame::OnExit(wxCommandEvent& WXUNUSED(event))
+{
+    Close(TRUE);
+}
+
+
+AdvancedSettingsFrame::AdvancedSettingsFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
+: wxFrame( NULL, -1, title, pos, size )
+{
+    okButton = new wxButton(this, ID_BUTTON_Exit, _("OK"), wxPoint(200,330), wxDefaultSize, 0);
+    cancelButton = new wxButton(this, ID_BUTTON_Exit, _("Cancel"), wxPoint(300,330), wxDefaultSize, 0);
+
+    stepsPerUpdateText = new wxStaticText(this, -1, _("Steps per update:"), wxPoint(50,35), wxDefaultSize,0);
+    stepsPerUpdateEntry = new wxTextCtrl(this, -1, _("10"), wxPoint(200,30), wxDefaultSize, 0);
+
+    renderSpinsCheckbox = new wxCheckBox(this, -1, _("Render spins"), wxPoint(50,65), wxDefaultSize,0);
+
+    useGpuRadioButton = new wxRadioButton(this, -1, _("Use GPU"), wxPoint(50,100), wxDefaultSize, wxRB_GROUP);
+    useCpuRadioButton = new wxRadioButton(this, -1, _("Use CPU"), wxPoint(50,130), wxDefaultSize);
+
+    useRTreeRadioButton = new wxRadioButton(this, -1, _("Use R-Tree"), wxPoint(50,170), wxDefaultSize,wxRB_GROUP);
+    useGridRadioButton = new wxRadioButton(this, -1, _("Use grid"), wxPoint(50,200), wxDefaultSize);
+
+    simpleCollisionsRadioButton = new wxRadioButton(this, -1, _("Simple collisions"), wxPoint(50,250), wxDefaultSize, wxRB_GROUP);
+    advancedCollisionsRadioButton = new wxRadioButton(this, -1, _("Advanced collisions"), wxPoint(50,280), wxDefaultSize);
+
+    CreateStatusBar();
+    SetStatusText( _("This will contain some helpful explanation message") );
+}
+
+void AdvancedSettingsFrame::OnExit(wxCommandEvent& WXUNUSED(event))
+{
+    Close(TRUE);
 }

@@ -177,6 +177,7 @@ bool SpinSystem::build()
 
     // allocate GPU data
     if(m_useVbo){
+printf("test\n");
         m_posVbo[0] = createVBO(sizeof(float) * 4 * m_numSpins);		// Change 1/27: Changed from 4 to 5
         m_posVbo[1] = createVBO(sizeof(float) * 4 * m_numSpins);		// Change 1/27: Changed from 4 to 5
     }else{

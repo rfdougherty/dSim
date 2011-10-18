@@ -272,12 +272,13 @@ CUBINDIR := $(SRCDIR)/data
 CUBINS +=  $(patsubst %.cu,$(CUBINDIR)/%.cubin,$(notdir $(CUBINFILES)))
 
 ################################################################################
-# Bragi: Quick hack to enable GTK+ and gtkglext, need to revise later
+# Bragi: Quick hack to enable GTK+ and gtkglext and wxwidgets, need to revise later
 ################################################################################
 #GTK_includes := `pkg-config --cflags gtk+-2.0`
 #GTK_libs :=  `pkg-config --libs gtk+-2.0`
 GTK_includes := `pkg-config --cflags gtk+-2.0 gtkglext-1.0 gtkglext-x11-1.0`
 GTK_libs :=  `pkg-config --libs gtk+-2.0 gtkglext-1.0 gtkglext-x11-1.0`
+WXW_includes := `wx-config --libs --cxxflags --gl-libs`
 
 ################################################################################
 # Rules
@@ -286,7 +287,7 @@ $(OBJDIR)/%.c_o : $(SRCDIR)/%.c $(C_DEPS)
 	$(VERBOSE)$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.cpp_o : $(SRCDIR)/%.cpp $(C_DEPS)
-	$(VERBOSE)$(CXX) $(CXXFLAGS) -o $@ $(GTK_includes) -c $<
+	$(VERBOSE)$(CXX) $(CXXFLAGS) -o $@ $(GTK_includes) $(WXW_includes) -c $<
 
 $(OBJDIR)/%.cu_o : $(SRCDIR)/%.cu $(CU_DEPS)
 	$(VERBOSE)$(NVCC) -o $@ -c $< $(NVCCFLAGS)
@@ -295,7 +296,7 @@ $(CUBINDIR)/%.cubin : $(SRCDIR)/%.cu cubindirectory
 	$(VERBOSE)$(NVCC) $(CUBIN_ARCH_FLAG) -o $@ -cubin $< $(NVCCFLAGS)
 
 $(TARGET): makedirectories $(OBJS) $(CUBINS) Makefile
-	$(VERBOSE)$(LINKLINE) $(GTK_libs)
+	$(VERBOSE)$(LINKLINE) $(GTK_libs) $(WXW_includes)
 
 cubindirectory:
 	@mkdir -p $(CUBINDIR)
