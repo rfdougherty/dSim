@@ -4,5 +4,6 @@ To accelerate the simulation, dSim takes advantage of the massively parallel GPU
 
 To build dSim, you will need the CUDA environment installed. See http://www.nvidia.com/object/cuda_get.html. You will also need libconfig (http://www.hyperrealm.com/libconfig/). On Redhat/Fedora, try "yum install libconfig-devel". On Debian/Ubuntu, try "apt-get install libconfig-devel".
 
-RFD 2008.12.19: must add more comments.
+To run dSim, you need to specify a configuration file that sets basic simulator parameters, a grads file that specifies the diffusion gradients to play out, and a fibers file that sets up the cylindrical fibers that the simulation will measure.
 
+The grads file
