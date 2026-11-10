@@ -1,0 +1,16 @@
+Third-party code in dSim
+========================
+
+The MIT license in LICENSE does not apply to the following files, which keep their
+original terms as stated in their headers:
+
+* NVIDIA CUDA SDK sample code (Copyright 1993-2006 NVIDIA Corporation):
+  dSim2/Makefile, dSim2/src/radixsort.cu, dSim2/src/radixsort.cuh,
+  dSim2/src/radixsort_kernel.cu, dSim2/src/renderSpins.cpp,
+  dSim2/src/renderSpins.h, portions of dSim2/src/diffusion.cpp, and the
+  corresponding files in dSim3/.
+* dSim3/tnt/ and dSim3/jama/: Template Numerical Toolkit and JAMA/C++
+  (NIST, public domain).
+* dSim3/matlab_tests/extrude/: Copyright (c) 2009 The MathWorks, Inc.;
+  see dSim3/matlab_tests/extrude/license.txt.
+* dSim3/src/RTree.h: third-party R-tree implementation.

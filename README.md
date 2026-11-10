@@ -227,6 +227,10 @@ Robert F. Dougherty and Bragi Sveinsson (Stanford University), with
 contributions from Nikola Stikov and Aviv Mezer on the corpus callosum tissue
 model.
 
-Copyright © 2011 Robert Dougherty and Bragi Sveinsson. Portions of the build
-system and radix sort are derived from NVIDIA CUDA SDK sample code and remain
-under NVIDIA's license terms (see file headers).
+## License
+
+Released under the [MIT License](LICENSE). Copyright © 2011 Robert Dougherty
+and Bragi Sveinsson. A few files come from third parties and keep their
+original terms: the build system, radix sort and renderer are derived from
+NVIDIA CUDA SDK sample code. They are listed in
+[`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
