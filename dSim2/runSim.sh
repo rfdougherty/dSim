@@ -18,8 +18,8 @@ for SPACE in 10 18 32 56 100
 do
   for NUMP in 100 316 1000 3162 10000 31623 100000 316228 1000000
   do
-      echo "*** RUNNING: $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numParticles=$NUMP ***"
-      $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numParticles=$NUMP
+      echo "*** RUNNING: $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numSpins=$NUMP ***"
+      $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numSpins=$NUMP
   done
 done               
 

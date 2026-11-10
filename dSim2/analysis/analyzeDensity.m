@@ -2,14 +2,20 @@ clear all
 
 axonRadiusFraction = 0.7;
 
-bd = '/white/u5/bob/svn/dSim/';
+% Base directory is dSim2/, one level up from this script, so paths work
+% wherever the repo is checked out.
+bd = fileparts(fileparts(mfilename('fullpath')));
+
+% Results written by runSimDensity.sh (a MATLAB script). Change this to
+% analyze a different run, e.g. the original data/densityTest.m.
+resultsFile = fullfile(bd,'data','densityTest_paper.m');
 
 outDir = fullfile(bd,'densitySim');
+if(~exist(outDir,'dir')), mkdir(outDir); end
 
 if(~exist('dSimFitTensor.m','file')), addpath(fullfile(bd,'analysis')); end
-if(~exist('densityTest.m','file')), addpath(fullfile(bd,'data')); end
 
-densityTest
+run(resultsFile);
 
 segs = {'genu','antBody','midBody','postBody','splenium'};
 for(jj=1:numel(segs))
@@ -18,9 +24,9 @@ for(jj=1:numel(segs))
     for(ii=1:numel(inds))
         [D,md{jj}(ii),fa{jj}(ii),l1{jj}(ii),l2{jj}(ii),l3{jj}(ii)] = dSimFitTensor(mrSig{inds(ii)}, delta{inds(ii)}, Delta{inds(ii)}, dwGrads{inds(ii)});
         f = dSimLoadFibers(fullfile(bd,fibersFile{inds(ii)}));
-        density{jj}(ii) = size(f,1)./spaceScale(inds(ii)).^2;
+        density{jj}(ii) = size(f,1)./(spaceScale(inds(ii)).*2).^2;  % voxel is 2*spaceScale wide
         myelinVolumeFraction{jj}(ii) = sum(pi.*f(:,4).^2 - pi.*(f(:,4).*axonRadiusFraction).^2)./(spaceScale(inds(ii)).*2).^2;
-        if(ii==1), fibers{ii} = f; end
+        if(ii==1), fibers{jj} = f; end  % keep one example fiber set per segment
     end
 end
 
@@ -28,7 +34,7 @@ figure(866);
 for(jj=1:5)
     subplot(4,5,jj);
     f = fibers{jj};
-    f = f(f(:,1)<=5&f(:,1)<=-5&f(:,2)<=5&f(:,2)<=-5,:);
+    f = f(f(:,1)<=5&f(:,1)>=-5&f(:,2)<=5&f(:,2)>=-5,:);
     for(ii=1:size(f,1))
         r = f(ii,4)*2; x = f(ii,1)-r/2; y = f(ii,2)-r/2;
         rectangle('Position',[x,y,r,r],'Curvature',[1,1],'FaceColor',[0.2 0.2 0.2]);
