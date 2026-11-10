@@ -16,8 +16,8 @@ for FS in 0.5 0.4 0.3 0.2 0.1
 do
   for CROSS in 0.0 0.1 0.2 0.3 0.4 0.5
   do
-    echo "*** RUNNING: $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numParticles=$NUMP -radiusMean=$FR -spaceMean=$FS -crossFraction=$CROSS ***"
-    $BIN -nodisp -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numParticles=$NUMP -radiusMean=$FR -spaceMean=$FS -crossFraction=$CROSS
+    echo "*** RUNNING: $BIN -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numSpins=$NUMP -radiusMean=$FR -spaceMean=$FS -crossFraction=$CROSS ***"
+    $BIN -nodisp -config=$CFG -out=$OUT -$GPU -spaceScale=$SPACE -numSpins=$NUMP -radiusMean=$FR -spaceMean=$FS -crossFraction=$CROSS
   done
 done               
 
