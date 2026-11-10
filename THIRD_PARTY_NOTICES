@@ -13,4 +13,9 @@ original terms as stated in their headers:
   (NIST, public domain).
 * dSim3/matlab_tests/extrude/: Copyright (c) 2009 The MathWorks, Inc.;
   see dSim3/matlab_tests/extrude/license.txt.
-* dSim3/src/RTree.h: third-party R-tree implementation.
+* dSim3/src/RTree.h: templated C++ R-tree by Greg Douglas, based on Melinda
+  Green's ANSI C implementation of Guttman and Stonebraker's algorithm.
+  Originally distributed at http://www.superliminal.com/sources/sources.htm
+  and mirrored as the "vanilla version" in the first commit of
+  https://github.com/nushoin/RTree, whose README describes that revision as
+  "entirely free for all uses".

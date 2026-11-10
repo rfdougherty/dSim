@@ -24,7 +24,7 @@ for(jj=1:numel(segs))
     for(ii=1:numel(inds))
         [D,md{jj}(ii),fa{jj}(ii),l1{jj}(ii),l2{jj}(ii),l3{jj}(ii)] = dSimFitTensor(mrSig{inds(ii)}, delta{inds(ii)}, Delta{inds(ii)}, dwGrads{inds(ii)});
         f = dSimLoadFibers(fullfile(bd,fibersFile{inds(ii)}));
-        density{jj}(ii) = size(f,1)./spaceScale(inds(ii)).^2;
+        density{jj}(ii) = size(f,1)./(spaceScale(inds(ii)).*2).^2;  % voxel is 2*spaceScale wide
         myelinVolumeFraction{jj}(ii) = sum(pi.*f(:,4).^2 - pi.*(f(:,4).*axonRadiusFraction).^2)./(spaceScale(inds(ii)).*2).^2;
         if(ii==1), fibers{jj} = f; end  % keep one example fiber set per segment
     end
