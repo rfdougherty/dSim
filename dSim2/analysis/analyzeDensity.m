@@ -26,7 +26,7 @@ for(jj=1:numel(segs))
         f = dSimLoadFibers(fullfile(bd,fibersFile{inds(ii)}));
         density{jj}(ii) = size(f,1)./spaceScale(inds(ii)).^2;
         myelinVolumeFraction{jj}(ii) = sum(pi.*f(:,4).^2 - pi.*(f(:,4).*axonRadiusFraction).^2)./(spaceScale(inds(ii)).*2).^2;
-        if(ii==1), fibers{ii} = f; end
+        if(ii==1), fibers{jj} = f; end  % keep one example fiber set per segment
     end
 end
 
@@ -34,7 +34,7 @@ figure(866);
 for(jj=1:5)
     subplot(4,5,jj);
     f = fibers{jj};
-    f = f(f(:,1)<=5&f(:,1)<=-5&f(:,2)<=5&f(:,2)<=-5,:);
+    f = f(f(:,1)<=5&f(:,1)>=-5&f(:,2)<=5&f(:,2)>=-5,:);
     for(ii=1:size(f,1))
         r = f(ii,4)*2; x = f(ii,1)-r/2; y = f(ii,2)-r/2;
         rectangle('Position',[x,y,r,r],'Curvature',[1,1],'FaceColor',[0.2 0.2 0.2]);
