@@ -2,14 +2,20 @@ clear all
 
 axonRadiusFraction = 0.7;
 
-bd = '/white/u5/bob/svn/dSim/';
+% Base directory is dSim2/, one level up from this script, so paths work
+% wherever the repo is checked out.
+bd = fileparts(fileparts(mfilename('fullpath')));
+
+% Results written by runSimDensity.sh (a MATLAB script). Change this to
+% analyze a different run, e.g. the original data/densityTest.m.
+resultsFile = fullfile(bd,'data','densityTest_paper.m');
 
 outDir = fullfile(bd,'densitySim');
+if(~exist(outDir,'dir')), mkdir(outDir); end
 
 if(~exist('dSimFitTensor.m','file')), addpath(fullfile(bd,'analysis')); end
-if(~exist('densityTest.m','file')), addpath(fullfile(bd,'data')); end
 
-densityTest
+run(resultsFile);
 
 segs = {'genu','antBody','midBody','postBody','splenium'};
 for(jj=1:numel(segs))
